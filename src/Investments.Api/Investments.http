@@ -1,0 +1,97 @@
+@baseUrl = http://localhost:5012
+@token = COLE_AQUI_O_TOKEN_RETORNADO_EM_POST_AUTH
+@investmentId = COLE_AQUI_O_ID_DO_INVESTIMENTO
+
+### 1) Cadastrar usuário
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Marcio Rodrigues",
+  "email": "marcio@teste.com",
+  "password": "Senha@123"
+}
+
+### 2) Autenticar (retorna JWT)
+POST {{baseUrl}}/auth
+Content-Type: application/json
+
+{
+  "email": "marcio@teste.com",
+  "password": "Senha@123"
+}
+
+### 3) Listar investimentos SEM token (deve retornar 401)
+GET {{baseUrl}}/investments
+
+### 4) Listar investimentos (protegido)
+GET {{baseUrl}}/investments
+Authorization: Bearer {{token}}
+
+### 5) Criar investimento (protegido)
+POST {{baseUrl}}/investments
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "type": "Acoes",
+  "amount": 1500.75,
+  "investedAt": "2026-09-01T00:00:00Z",
+  "description": "PETR4"
+}
+
+### 6) Atualizar investimento (protegido)
+PUT {{baseUrl}}/investments/{{investmentId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "type": "RendaFixa",
+  "amount": 3000,
+  "investedAt": "2026-08-15T00:00:00Z",
+  "description": "CDB 110% CDI"
+}
+
+### 7) Remover investimento (protegido)
+DELETE {{baseUrl}}/investments/{{investmentId}}
+Authorization: Bearer {{token}}
+
+### 8) Obter um investimento específico (protegido)
+GET {{baseUrl}}/investments/{{investmentId}}
+Authorization: Bearer {{token}}
+
+### 9) Criar investimento sem a data (deve retornar 400)
+POST {{baseUrl}}/investments
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "type": "Acoes",
+  "amount": 100
+}
+
+### 10) Listar tipos de investimento (protegido)
+GET {{baseUrl}}/investment-types
+Authorization: Bearer {{token}}
+
+### 11) Cadastrar um novo tipo de investimento (protegido)
+POST {{baseUrl}}/investment-types
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Fiis"
+}
+
+### 12) Renomear um tipo de investimento (protegido)
+PUT {{baseUrl}}/investment-types/6
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "FundosImobiliarios"
+}
+
+### 13) Remover um tipo de investimento (409 se estiver em uso)
+DELETE {{baseUrl}}/investment-types/6
+Authorization: Bearer {{token}}
