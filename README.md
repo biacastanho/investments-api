@@ -2,15 +2,15 @@
 
 API REST desenvolvida para a atividade substitutiva da Fase 1 da Pós-Tech em Arquitetura de Sistemas .NET com Azure.
 
-O projeto permite cadastrar usuários, realizar autenticação por JWT e gerenciar investimentos. Todas as operações com investimentos são protegidas, e cada usuário pode consultar ou alterar somente os próprios registros.
+O projeto permite cadastrar usuários, realizar autenticação por JWT e gerenciar investimentos. Os endpoints de investimentos são protegidos, e cada usuário pode consultar ou alterar somente os próprios registros.
 
 ## Tecnologias utilizadas
 
 - .NET 8
 - ASP.NET Core Web API
 - Entity Framework Core
-- SQL Server 2022
-- Docker
+- SQL Server LocalDB
+- SQL Server 2022 com Docker (opcional)
 - JWT Bearer
 - BCrypt
 - Swagger / OpenAPI
@@ -31,7 +31,7 @@ tests/
 
 ## Funcionalidades
 
-- Cadastro de usuário;
+- Cadastro de usuários;
 - autenticação com e-mail e senha;
 - geração de token JWT;
 - cadastro, consulta, atualização e exclusão de investimentos;
@@ -39,31 +39,65 @@ tests/
 - armazenamento de senhas com hash BCrypt;
 - cadastro e manutenção dos tipos de investimento;
 - validação dos dados recebidos;
-- documentação e testes dos endpoints pelo Swagger.
+- documentação e execução dos endpoints pelo Swagger;
+- criação e atualização automática do banco por migrations.
 
 ## Pré-requisitos
 
-Para executar o projeto, é necessário ter instalado:
+Para executar o projeto com a configuração padrão, é necessário ter instalado:
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/);
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0);
-- Visual Studio 2022 com a carga de trabalho **Desenvolvimento ASP.NET e Web**, ou outro editor compatível com .NET.
+- Visual Studio 2022 com a carga de trabalho **Desenvolvimento ASP.NET e Web**;
+- SQL Server Express LocalDB.
 
-Confira as instalações no PowerShell:
+Confira a versão instalada do .NET no PowerShell:
+
+```powershell
+dotnet --version
+```
+
+O projeto também pode ser executado com SQL Server em um container Docker. Nesse caso, é necessário ter o [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado e em execução.
+
+## Banco de dados
+
+A aplicação utiliza SQL Server e está configurada por padrão para executar com SQL Server LocalDB.
+
+### Opção A — SQL Server LocalDB
+
+A connection string padrão está configurada no arquivo `appsettings.json`:
+
+```text
+Server=(localdb)\MSSQLLocalDB;Database=InvestmentsDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true
+```
+
+Não é necessário criar o banco ou executar scripts SQL manualmente.
+
+Ao iniciar a API pela primeira vez, as migrations do Entity Framework são aplicadas automaticamente, criando:
+
+- o banco `InvestmentsDb`;
+- as tabelas da aplicação;
+- os relacionamentos e índices;
+- os tipos iniciais de investimento.
+
+Para visualizar o banco no Visual Studio:
+
+1. Abra **View → SQL Server Object Explorer**;
+2. expanda **SQL Server → (localdb)\MSSQLLocalDB**;
+3. atualize a pasta **Databases**;
+4. abra o banco `InvestmentsDb`.
+
+### Opção B — SQL Server com Docker
+
+Para quem não possui LocalDB, o arquivo `docker-compose.yml` cria uma instância do SQL Server 2022 na porta `1433`.
+
+Confira se o Docker está disponível:
 
 ```powershell
 docker --version
 docker compose version
-dotnet --version
 ```
 
-O Docker Desktop deve estar aberto antes de iniciar o banco de dados.
-
-## Banco de dados com Docker
-
-O arquivo `docker-compose.yml`, localizado na raiz do projeto, cria uma instância do SQL Server 2022 na porta `1433`.
-
-Abra o PowerShell na pasta que contém `InvestmentsApi.sln` e execute:
+Na raiz do projeto, execute:
 
 ```powershell
 docker compose up -d
@@ -83,46 +117,55 @@ docker compose logs -f sqlserver
 
 Quando aparecer a mensagem indicando que o SQL Server está pronto para receber conexões, pressione `Ctrl+C`. Isso encerra somente a exibição dos logs; o container continuará em execução.
 
-## Configuração da conexão
-
-A configuração padrão da aplicação utiliza SQL Server LocalDB. Para usar o SQL Server do Docker, defina a connection string no PowerShell antes de iniciar a API:
+Para usar o banco do Docker, defina a connection string no mesmo PowerShell em que executará a API:
 
 ```powershell
 $env:ConnectionStrings__DefaultConnection = "Server=localhost,1433;Database=InvestmentsDb;User Id=sa;Password=Investments@2026;Encrypt=True;TrustServerCertificate=True"
 ```
 
-Também é possível definir uma chave JWT própria para o ambiente local:
-
-```powershell
-$env:Jwt__Secret = "Investments-local-jwt-secret-with-at-least-32-characters"
-```
-
-Essas variáveis permanecem disponíveis somente na janela atual do PowerShell. Se abrir outro terminal para executar a API, será necessário configurá-las novamente.
-
-As migrations são aplicadas automaticamente na primeira inicialização. Dessa forma, o banco `InvestmentsDb`, suas tabelas e os tipos iniciais de investimento serão criados sem a execução manual de scripts SQL.
+Essa variável permanece disponível somente na janela atual do PowerShell.
 
 ## Executando o projeto
 
-Na raiz do projeto, restaure as dependências e faça o build:
+Abra o PowerShell na pasta que contém o arquivo `InvestmentsApi.sln`.
+
+Restaure as dependências:
 
 ```powershell
 dotnet restore InvestmentsApi.sln
+```
+
+Faça o build da solução:
+
+```powershell
 dotnet build InvestmentsApi.sln
 ```
 
-Depois, execute a API:
+A configuração padrão utiliza o LocalDB, portanto não é necessário informar uma connection string manualmente.
+
+Execute a API:
 
 ```powershell
 dotnet run --project .\src\Investments.Api --launch-profile http
 ```
 
-A documentação ficará disponível em:
+A documentação da API ficará disponível em:
 
 ```text
 http://localhost:5012/swagger
 ```
 
 O terminal deve permanecer aberto enquanto a API estiver em execução.
+
+### Executando pelo Visual Studio
+
+Também é possível executar diretamente pelo Visual Studio:
+
+1. Abra `InvestmentsApi.sln`;
+2. clique com o botão direito no projeto `Investments.Api`;
+3. selecione **Set as Startup Project**;
+4. escolha o perfil `http`;
+5. pressione `F5` ou clique no botão de execução.
 
 ## Endpoints
 
@@ -141,14 +184,16 @@ O terminal deve permanecer aberto enquanto a API estiver em execução.
 | PUT | `/investment-types/{id}` | Bearer JWT | Atualiza um tipo de investimento |
 | DELETE | `/investment-types/{id}` | Bearer JWT | Exclui um tipo que não esteja em uso |
 
-## Utilizando a autenticação no Swagger
+## Autenticação no Swagger
 
-1. Execute `POST /users` para cadastrar um usuário.
-2. Execute `POST /auth` com o e-mail e a senha cadastrados.
-3. Copie o token retornado pela API.
-4. Clique em **Authorize**, na parte superior do Swagger.
-5. Informe o token e confirme a autorização.
-6. Execute os endpoints protegidos de investimentos.
+Para acessar os endpoints protegidos:
+
+1. Execute `POST /users` para cadastrar um usuário;
+2. execute `POST /auth` com o e-mail e a senha cadastrados;
+3. copie o token retornado pela API;
+4. clique em **Authorize**, na parte superior do Swagger;
+5. informe o token e confirme;
+6. execute os endpoints protegidos.
 
 Exemplo de cadastro:
 
@@ -160,7 +205,16 @@ Exemplo de cadastro:
 }
 ```
 
-Exemplo de investimento:
+Exemplo de autenticação:
+
+```json
+{
+  "email": "usuario@teste.com",
+  "password": "Senha@123"
+}
+```
+
+Exemplo de cadastro de investimento:
 
 ```json
 {
@@ -171,7 +225,33 @@ Exemplo de investimento:
 }
 ```
 
-Os tipos criados inicialmente são `Acoes`, `RendaFixa`, `Fundos`, `Tesouro` e `Cripto`.
+Os tipos de investimento criados inicialmente são:
+
+- `Acoes`;
+- `RendaFixa`;
+- `Fundos`;
+- `Tesouro`;
+- `Cripto`.
+
+Novos tipos podem ser cadastrados pelo endpoint `POST /investment-types`.
+
+## Validações e segurança
+
+A API possui validações para:
+
+- campos obrigatórios;
+- formato do e-mail;
+- e-mail já cadastrado;
+- valor investido maior que zero;
+- data de investimento obrigatória e não futura;
+- tipo de investimento existente;
+- tamanho máximo dos campos;
+- autenticação nos endpoints protegidos;
+- acesso somente aos investimentos do usuário autenticado.
+
+As senhas não são armazenadas em texto puro. Antes de serem gravadas no banco, elas são processadas com BCrypt.
+
+O token JWT contém o identificador do usuário. Esse identificador é utilizado para filtrar as consultas e impedir que um usuário consulte, atualize ou exclua investimentos pertencentes a outro usuário.
 
 ## Testes
 
@@ -181,28 +261,70 @@ Para executar todos os testes:
 dotnet test InvestmentsApi.sln
 ```
 
-Os testes cobrem as principais regras de domínio e o fluxo de cadastro, autenticação, proteção dos endpoints, CRUD de investimentos e isolamento dos dados entre usuários.
+Os testes cobrem:
 
-## Verificando o banco de dados
+- regras das entidades;
+- validações dos investimentos;
+- hash e verificação de senha;
+- cadastro de usuário;
+- autenticação;
+- proteção dos endpoints;
+- fluxo completo de investimentos;
+- isolamento dos dados entre usuários;
+- manutenção dos tipos de investimento.
 
-Depois de executar a API, é possível confirmar a criação do banco pelo próprio container:
+Ao final da execução, confirme que não existem testes com falha.
 
-```powershell
-docker exec -it investments-sqlserver /opt/mssql-tools18/bin/sqlcmd `
-  -S localhost -U sa -P "Investments@2026" -C `
-  -Q "SELECT name FROM sys.databases"
+## Verificando o banco no Visual Studio
+
+Quando a aplicação estiver usando LocalDB, abra o **SQL Server Object Explorer** e expanda:
+
+```text
+SQL Server
+  (localdb)\MSSQLLocalDB
+    Databases
+      InvestmentsDb
+        Tables
 ```
 
-Para listar as tabelas:
+As principais tabelas são:
 
-```powershell
-docker exec -it investments-sqlserver /opt/mssql-tools18/bin/sqlcmd `
-  -S localhost -U sa -P "Investments@2026" -C `
-  -d InvestmentsDb `
-  -Q "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_NAME"
+- `dbo.Users`;
+- `dbo.Investments`;
+- `dbo.InvestmentTypes`;
+- `dbo.__EFMigrationsHistory`.
+
+Para conferir os tipos de investimento cadastrados, abra uma nova consulta no banco `InvestmentsDb` e execute:
+
+```sql
+SELECT *
+FROM InvestmentTypes;
 ```
 
-## Encerrando o ambiente
+Para conferir os usuários e verificar que as senhas foram armazenadas como hash:
+
+```sql
+SELECT Id, Name, Email, PasswordHash
+FROM Users;
+```
+
+Para visualizar os investimentos:
+
+```sql
+SELECT *
+FROM Investments;
+```
+
+Para verificar as migrations aplicadas:
+
+```sql
+SELECT *
+FROM __EFMigrationsHistory;
+```
+
+## Encerrando o ambiente Docker
+
+Esta seção se aplica somente a quem escolheu executar o SQL Server com Docker.
 
 Para parar o SQL Server sem apagar os dados:
 
@@ -222,17 +344,27 @@ Para remover o container e manter o volume com os dados:
 docker compose down
 ```
 
-> O comando `docker compose down -v` também remove o volume e apaga o banco de dados. Use-o somente quando quiser recriar o ambiente do zero.
+O comando abaixo também remove o volume e apaga o banco de dados:
+
+```powershell
+docker compose down -v
+```
+
+Utilize-o somente quando quiser recriar o ambiente do zero.
 
 ## Solução de problemas
 
-### A API tenta acessar o LocalDB
+### O banco não aparece no SQL Server Object Explorer
 
-Defina novamente a variável `ConnectionStrings__DefaultConnection` no mesmo PowerShell em que executará `dotnet run`.
+Inicie a API pelo menos uma vez para que as migrations sejam aplicadas. Depois, clique em **Refresh** na pasta `Databases`.
+
+### A API continua usando o LocalDB quando deveria usar o Docker
+
+Defina `ConnectionStrings__DefaultConnection` no mesmo PowerShell em que executará o comando `dotnet run`.
 
 ### A porta 1433 já está em uso
 
-Verifique se existe outra instância do SQL Server ou outro container utilizando essa porta:
+Verifique se existe outra instância ou outro container utilizando a porta:
 
 ```powershell
 docker ps
@@ -240,8 +372,24 @@ docker ps
 
 ### O Swagger não abre
 
-Confirme se o terminal da API mostra que ela está escutando em `http://localhost:5012`. Se a execução foi encerrada, rode novamente o comando `dotnet run`.
+Confirme se a API está em execução e se o terminal mostra:
 
-### Erro de conexão logo após subir o container
+```text
+http://localhost:5012
+```
 
-O SQL Server pode levar alguns segundos para concluir a inicialização. Confira os logs com `docker compose logs -f sqlserver`, aguarde a mensagem de disponibilidade e tente iniciar a API novamente.
+Depois, acesse:
+
+```text
+http://localhost:5012/swagger
+```
+
+### Erro de conexão logo após iniciar o Docker
+
+O SQL Server pode levar alguns segundos para concluir a inicialização. Confira os logs:
+
+```powershell
+docker compose logs -f sqlserver
+```
+
+Aguarde a mensagem de disponibilidade e tente iniciar a API novamente.

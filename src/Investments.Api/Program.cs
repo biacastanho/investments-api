@@ -58,7 +58,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "Investments API",
         Version = "v1",
-        Description = "API de investimentos - Atividade Substitutiva Fase 1 (POSTECH)"
+        Description = "API de investimentos"
     });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
