@@ -35,11 +35,20 @@ public class Investment
 
     private void SetValues(int investmentTypeId, decimal amount, DateTime investedAt, string? description)
     {
-        if (investmentTypeId <= 0) throw new DomainException("Tipo de investimento é obrigatório.");
-        if (amount <= 0) throw new DomainException("Valor investido deve ser maior que zero.");
-        if (investedAt == default) throw new DomainException("Data de investimento é obrigatória.");
-        if (investedAt > DateTime.UtcNow.AddDays(1)) throw new DomainException("Data de investimento não pode ser futura.");
-        if (description is { Length: > 200 }) throw new DomainException("Descrição deve ter no máximo 200 caracteres.");
+        if (investmentTypeId <= 0) 
+            throw new DomainException("Tipo de investimento é obrigatório.");
+        
+        if (amount <= 0) 
+            throw new DomainException("Valor investido deve ser maior que zero.");
+
+        if (investedAt == default) 
+            throw new DomainException("Data de investimento é obrigatória.");
+
+        if (investedAt > DateTime.UtcNow) 
+            throw new DomainException("Data de investimento não pode ser futura.");
+
+        if (description is { Length: > 200 }) 
+            throw new DomainException("Descrição deve ter no máximo 200 caracteres.");
 
         InvestmentTypeId = investmentTypeId;
         Amount = amount;

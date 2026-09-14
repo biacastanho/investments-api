@@ -40,8 +40,16 @@ public class InvestmentEntityTests
     [Fact]
     public void Nao_deve_aceitar_data_futura()
     {
-        var act = () => new Investment(UserId, Fundos, 100, DateTime.UtcNow.AddDays(10), null);
-        act.Should().Throw<DomainException>().WithMessage("*futura*");
+        var act = () => new Investment(
+            UserId,
+            Fundos,
+            100,
+            DateTime.UtcNow.AddMinutes(10),
+            null);
+
+        act.Should()
+            .Throw<DomainException>()
+            .WithMessage("*futura*");
     }
 
     [Fact]
