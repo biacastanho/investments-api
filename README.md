@@ -1,6 +1,12 @@
 # Investments API
 
-API REST desenvolvida para a atividade substitutiva da Fase 1 da Pós-Tech em Arquitetura de Sistemas .NET com Azure.
+[![CI](https://github.com/biacastanho/investments-api/actions/workflows/ci.yml/badge.svg)](https://github.com/biacastanho/investments-api/actions/workflows/ci.yml)
+[![CD](https://github.com/biacastanho/investments-api/actions/workflows/cd.yml/badge.svg)](https://github.com/biacastanho/investments-api/actions/workflows/cd.yml)
+
+API REST desenvolvida para as atividades substitutivas da Pós-Tech em Arquitetura de Sistemas .NET com Azure:
+
+- **Fase 1:** construção da API;
+- **Fase 2:** esteira de CI/CD com GitHub Actions e implantação no Azure App Service (veja [CI/CD](#cicd)).
 
 O projeto permite cadastrar usuários, realizar autenticação por JWT e gerenciar investimentos. Os endpoints de investimentos são protegidos, e cada usuário pode consultar ou alterar somente os próprios registros.
 
@@ -15,6 +21,8 @@ O projeto permite cadastrar usuários, realizar autenticação por JWT e gerenci
 - BCrypt
 - Swagger / OpenAPI
 - xUnit, Moq e FluentAssertions
+- GitHub Actions
+- Azure App Service e Azure SQL Database
 
 ## Estrutura do projeto
 
@@ -183,6 +191,7 @@ Também é possível executar diretamente pelo Visual Studio:
 | POST | `/investment-types` | Bearer JWT | Cadastra um tipo de investimento |
 | PUT | `/investment-types/{id}` | Bearer JWT | Atualiza um tipo de investimento |
 | DELETE | `/investment-types/{id}` | Bearer JWT | Exclui um tipo que não esteja em uso |
+| GET | `/health` | Não | Status da API e do banco, com a versão publicada |
 
 ## Autenticação no Swagger
 
@@ -274,6 +283,103 @@ Os testes cobrem:
 - manutenção dos tipos de investimento.
 
 Ao final da execução, confirme que não existem testes com falha.
+
+## CI/CD
+
+A esteira foi montada com GitHub Actions e está dividida em dois workflows:
+
+```text
+push na main ──> CI (.github/workflows/ci.yml) ──sucesso──> CD (.github/workflows/cd.yml) ──> Azure App Service
+                 restore                                    baixa o artefato do CI
+                 build                                      deploy no App Service
+                 testes                                     verifica GET /health
+                 publish + artefato
+```
+
+### CI
+
+Arquivo: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+
+É executado automaticamente a cada `push` e `pull request` na branch `main` (e também manualmente, pela aba **Actions**). Os passos são:
+
+1. checkout do código;
+2. instalação do .NET 8;
+3. `dotnet restore`;
+4. `dotnet build` em `Release`, com a versão `1.0.<número da execução>`;
+5. `dotnet test`, com os testes de unidade e integração;
+6. upload do resultado dos testes (`test-results`, arquivo `.trx`);
+7. `dotnet publish` da API;
+8. upload do pacote de publicação como artefato (`investments-api`).
+
+Se a compilação ou qualquer teste falhar, o workflow é interrompido e nenhum artefato é gerado.
+
+### CD
+
+Arquivo: [`.github/workflows/cd.yml`](.github/workflows/cd.yml)
+
+É disparado pelo evento `workflow_run`, sempre que o CI termina. O deploy só acontece quando o CI terminou com **sucesso** e foi originado por um push na `main`; pull requests não são implantados. Os passos são:
+
+1. download do artefato `investments-api` gerado pela execução do CI que disparou o CD;
+2. deploy no Azure App Service com a action `azure/webapps-deploy`;
+3. verificação da aplicação publicada, chamando `GET /health` até a API responder `Healthy`;
+4. resumo do deploy com o commit implantado e o link do Swagger.
+
+O job usa o ambiente `production` do GitHub, então cada implantação fica registrada em **Deployments**, com o link da aplicação.
+
+Enquanto a variável `AZURE_WEBAPP_NAME` não estiver configurada no repositório, o job de deploy aparece como *skipped*.
+
+### Configuração do ambiente de produção no Azure
+
+Todos os recursos abaixo utilizam camadas gratuitas do Azure.
+
+**1. Banco de dados (Azure SQL Database — oferta gratuita)**
+
+1. No portal do Azure, crie um **SQL Database**;
+2. no topo da tela de criação, clique em **Apply offer** para usar a oferta gratuita;
+3. crie um servidor novo com **SQL authentication** (anote usuário e senha);
+4. em **Networking**, marque **Allow Azure services and resources to access this server**;
+5. após a criação, abra **Connection strings** e copie a string **ADO.NET**, substituindo `{your_password}` pela senha.
+
+**2. Aplicação (Azure App Service — plano F1 gratuito)**
+
+1. Crie um **Web App** com:
+   - **Publish:** Code;
+   - **Runtime stack:** .NET 8 (LTS);
+   - **Operating System:** Windows;
+   - **Pricing plan:** Free F1;
+2. após a criação, em **Settings → Configuration → General settings**, ative **SCM Basic Auth Publishing Credentials** e salve;
+3. em **Settings → Environment variables**:
+   - na aba **Connection strings**, adicione `DefaultConnection`, do tipo `SQLAzure`, com a string do banco;
+   - na aba **App settings**, adicione `Jwt__Secret` com um valor aleatório de pelo menos 32 caracteres;
+4. em **Overview**, clique em **Download publish profile**.
+
+As migrations são aplicadas automaticamente quando a API inicia, então não é necessário executar scripts no banco.
+
+**3. Repositório no GitHub**
+
+Em **Settings → Secrets and variables → Actions**:
+
+| Tipo | Nome | Valor |
+|---|---|---|
+| Secret | `AZURE_WEBAPP_PUBLISH_PROFILE` | Conteúdo completo do arquivo `.PublishSettings` baixado |
+| Variable | `AZURE_WEBAPP_NAME` | Nome do Web App criado no Azure |
+
+Depois disso, qualquer push na `main` executa a esteira completa. Para disparar sem alterar código, execute o CI manualmente em **Actions → CI → Run workflow**.
+
+### Verificando a implantação
+
+Ao final do CD, a aplicação fica disponível no endereço do App Service:
+
+```text
+https://<nome-do-app>.azurewebsites.net/swagger
+https://<nome-do-app>.azurewebsites.net/health
+```
+
+O `/health` retorna a versão implantada, que corresponde ao número da execução do CI e ao commit:
+
+```json
+{"status":"Healthy","version":"1.0.12+3e9a1aa...","environment":"Production","checks":{"database":"Healthy"}}
+```
 
 ## Verificando o banco no Visual Studio
 
