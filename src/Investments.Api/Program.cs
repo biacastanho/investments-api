@@ -1,10 +1,12 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using Investments.Api.HealthChecks;
 using Investments.Api.Middlewares;
 using Investments.Infrastructure;
 using Investments.Infrastructure.Data;
 using Investments.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -49,6 +51,10 @@ builder.Services.AddControllers()
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
+
+// Health check usado pelo deploy para confirmar que a API subiu e acessa o banco
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("database");
 
 // Documentação (Swagger) com suporte a Bearer
 builder.Services.AddEndpointsApiExplorer();
@@ -105,6 +111,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health", new HealthCheckOptions { ResponseWriter = HealthResponseWriter.WriteAsync });
 
 app.Run();
 
