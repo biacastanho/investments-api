@@ -22,14 +22,14 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event != 'pull_request' &&
       vars.AZURE_WEBAPP_NAME != ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: production
       url: ${{ steps.deploy.outputs.webapp-url }}/swagger
 
     steps:
       - name: Baixa o artefato gerado pelo CI
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: investments-api
           path: ./app
